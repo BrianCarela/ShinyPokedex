@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import { useDispatch } from 'react-redux';
 import { randomPokemon, setPokemon } from '../../redux/pokemonSlice';
+import axios from 'axios';
 
 interface ShowPokeDetailsProps {
   data: any;
@@ -17,22 +18,27 @@ interface ShowPokeDetailsProps {
 
 const ShowPokeDetails: React.FC<ShowPokeDetailsProps> = ({ data, onPrev, onNext }) => {
   const dispatch = useDispatch();
-  const [searchId, setSearchId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleRandom = () => {
     dispatch(randomPokemon());
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchId(event.target.value);
+    setSearchTerm(event.target.value);
   };
 
-  const handleSearch = () => {
-    const id = parseInt(searchId, 10);
+  const handleSearch = async () => {
+    const id = parseInt(searchTerm, 10);
     if (!isNaN(id) && id > 0 && id <= 1025) {
       dispatch(setPokemon({ id, name: '' })); // Name will be fetched and updated later
     } else {
-      alert('Please enter a valid Pokemon ID (1-1025).');
+      try {
+        const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${searchTerm.toLowerCase()}`);
+        dispatch(setPokemon({ id: response.data.id, name: capitalizeFirstLetter(response.data.name) }));
+      } catch (error) {
+        alert('Pokemon not found. Please enter a valid Pokemon ID (1-1025) or name.');
+      }
     }
   };
 
@@ -51,8 +57,8 @@ const ShowPokeDetails: React.FC<ShowPokeDetailsProps> = ({ data, onPrev, onNext 
       <div className="search-bar">
         <TextField
           variant="outlined"
-          placeholder="Enter Pokemon ID"
-          value={searchId}
+          placeholder="Name or ID"
+          value={searchTerm}
           onChange={handleSearchChange}
           onKeyPress={(event) => {
             if (event.key === 'Enter') {
